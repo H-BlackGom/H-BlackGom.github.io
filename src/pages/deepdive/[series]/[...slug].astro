@@ -1,0 +1,45 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import ArticleLayout from '../../../layouts/ArticleLayout.astro';
+import SeriesNav from '../../../components/SeriesNav.astro';
+import { getSeriesList, slugOf } from '../../../lib/content';
+
+export const getStaticPaths = (async () => {
+  const seriesList = await getSeriesList();
+  return seriesList.flatMap(({ series, episodes }) =>
+    episodes.map((episode) => ({
+      params: { series: series.id, slug: slugOf(episode) },
+      props: { series, episodes, episode },
+    })),
+  );
+}) satisfies GetStaticPaths;
+
+const { series, episodes, episode } = Astro.props;
+const { Content, headings } = await render(episode);
+
+const order = episodes.findIndex((e) => e.id === episode.id) + 1;
+---
+
+<ArticleLayout
+  section="deepdive"
+  headings={headings}
+  title={episode.data.title}
+  description={episode.data.description ?? episode.data.takeaway}
+  publishedAt={episode.data.publishedAt}
+  updatedAt={episode.data.updatedAt}
+  tags={episode.data.tags}
+  canonical={episode.data.canonical}
+  crosspostedTo={episode.data.crosspostedTo}
+  ogImage={episode.data.cover ?? series.data.cover}
+  eyebrow={`${series.data.title} ${order}편`}
+>
+  <Content />
+
+  <SeriesNav
+    slot="after"
+    series={series}
+    episodes={episodes}
+    current={episode}
+  />
+</ArticleLayout>

@@ -1,0 +1,245 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, LINKS, SECTIONS, ABOUT } from '../consts';
+import { getFeed, formatDate } from '../lib/content';
+
+const now = await getCollection('now');
+const feed = await getFeed();
+
+const counts = SECTIONS.map((section) => ({
+  ...section,
+  count: feed.filter((item) => item.section === section.id).length,
+}));
+
+const firstPost = feed.at(-1);
+
+const links = [
+  { label: 'velog (이전 블로그)', href: LINKS.velog },
+  { label: 'GitHub', href: LINKS.github },
+  { label: 'RSS', href: '/rss.xml' },
+  LINKS.instagram ? { label: 'Instagram', href: LINKS.instagram } : null,
+].filter((l): l is { label: string; href: string } => l !== null);
+---
+
+<BaseLayout
+  title={ABOUT.label}
+  description={`${SITE.author}이 누구이고 이 블로그에 무엇이 있는지.`}
+>
+  <header class="about-head page-block">
+    <p class="eyebrow">{ABOUT.label}</p>
+    <h1 class="dot section-title">{SITE.author}</h1>
+    <p class="about-lede">{SITE.tagline}.</p>
+  </header>
+
+  <div class="about-grid">
+    <section class="about-block">
+      <h2>누구인가</h2>
+      <div class="about-prose">
+        <p>
+          서버 개발자입니다. 분산 시스템과 검색 엔진을 주로 다루고, 요즘은
+          OpenSearch 내부를 파고 있습니다. 3살 딸과 함께 자라는 중입니다.
+        </p>
+        <p>
+          어려운 개념을 가족 이야기에 비유해서 설명하는 걸 좋아합니다. 그게 제가
+          가장 잘 이해하는 방식이기도 해서요. 잘 안 되는 날은 만화로 그립니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="about-block">
+      <h2>여기 있는 것들</h2>
+      <ul class="about-sections">
+        {
+          counts.map((section) => (
+            <li>
+              <a href={section.href}>
+                <span class="about-sections__label">{section.label}</span>
+                <span class="about-sections__blurb">{section.blurb}</span>
+                <span class="about-sections__count">{section.count}개</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    {
+      now.length > 0 && (
+        <section class="about-block">
+          <h2>요즘</h2>
+          <dl class="about-now">
+            {now.map((item) => (
+              <>
+                <dt>{item.data.label}</dt>
+                <dd>{item.data.value}</dd>
+              </>
+            ))}
+          </dl>
+          <p class="about-note">
+            이 목록은 <code>src/content/now.json</code> 에서 옵니다.
+          </p>
+        </section>
+      )
+    }
+
+    <section class="about-block">
+      <h2>어디서 찾을 수 있나</h2>
+      <ul class="chips about-links">
+        {
+          links.map((link) => (
+            <li>
+              <a class="tag" href={link.href} rel="me noopener">
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="about-prose">
+        <p>
+          이 블로그는 원래 velog(<code>{SITE.titleEn}</code>)에서 시작했습니다.
+          옛 글은 지우지 않고 그대로 두었으니, 검색으로 찾아오셨다면 양쪽 다 보실
+          수 있습니다.
+        </p>
+        {
+          firstPost && (
+            <p class="about-note">
+              이 블로그의 첫 기록: {formatDate(firstPost.publishedAt)}
+            </p>
+          )
+        }
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .about-head {
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.25rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .about-head h1 {
+    margin-top: 0.5rem;
+  }
+
+  .about-lede {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 1.02rem;
+    line-height: 1.8;
+    color: var(--fg-muted);
+    margin-top: 0.9rem;
+  }
+
+  .about-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    align-items: start;
+  }
+
+  .about-block {
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--bg-elev);
+    padding: 1.25rem 1.35rem;
+  }
+
+  .about-block h2 {
+    font-size: 1.15rem;
+    color: var(--accent);
+    padding-bottom: 0.7rem;
+    margin-bottom: 0.9rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  /* 읽는 글은 산세리프 */
+  .about-prose {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.94rem;
+    line-height: 1.8;
+    color: var(--fg-muted);
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .about-sections {
+    list-style: none;
+    padding: 0;
+    display: grid;
+  }
+
+  .about-sections li + li {
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .about-sections a {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.15rem 0.75rem;
+    padding: 0.6rem 0;
+    text-decoration: none;
+  }
+
+  .about-sections a:hover .about-sections__label {
+    color: var(--accent);
+  }
+
+  .about-sections__label {
+    font-size: var(--label);
+    font-weight: 700;
+  }
+
+  .about-sections__count {
+    grid-row: 1 / 3;
+    grid-column: 2;
+    align-self: center;
+    font-size: var(--label);
+    color: var(--fg-faint);
+  }
+
+  .about-sections__blurb {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--fg-muted);
+  }
+
+  .about-now {
+    display: grid;
+    gap: 0.2rem 0.9rem;
+    grid-template-columns: auto 1fr;
+    margin: 0;
+  }
+
+  .about-now dt {
+    font-size: var(--label);
+    font-weight: 700;
+    color: var(--fg-faint);
+    white-space: nowrap;
+  }
+
+  .about-now dd {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .about-links {
+    margin-bottom: 1.1rem;
+  }
+
+  .about-note {
+    font-size: var(--label);
+    font-family: var(--font-dot);
+    color: var(--fg-faint);
+    margin-top: 0.8rem;
+  }
+</style>

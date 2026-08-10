@@ -1,0 +1,62 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getFeed, tagCounts } from '../../lib/content';
+
+export const getStaticPaths = (async () => {
+  const feed = await getFeed();
+  return tagCounts(feed).map(([tag]) => ({
+    params: { tag },
+    props: { tag, items: feed.filter((item) => item.tags.includes(tag)) },
+  }));
+}) satisfies GetStaticPaths;
+
+const { tag, items } = Astro.props;
+---
+
+<BaseLayout
+  title={`#${tag}`}
+  description={`${tag} 태그가 붙은 글 ${items.length}개.`}
+>
+  <header class="tag-head">
+    <p class="eyebrow">태그 · {items.length}개</p>
+    <h1 class="dot section-title">#{tag}</h1>
+  </header>
+
+  <div class="grid">
+    {
+      items.map((item) => (
+        <PostCard
+          href={item.href}
+          title={item.title}
+          description={item.description}
+          publishedAt={item.publishedAt}
+          section={item.section}
+          context={item.context}
+        />
+      ))
+    }
+  </div>
+
+  <p class="tag-back muted">
+    <a href="/">← 홈으로</a>
+  </p>
+</BaseLayout>
+
+<style>
+  .tag-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .tag-head h1 {
+    margin-top: 0.4rem;
+  }
+
+  .tag-back {
+    margin-top: 2.5rem;
+    font-size: var(--label);
+  }
+</style>

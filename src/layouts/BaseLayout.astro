@@ -1,0 +1,51 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishedAt?: Date;
+  updatedAt?: Date;
+  noindex?: boolean;
+  /** 웹툰처럼 본문이 화면 폭을 다 써야 하면 false */
+  contained?: boolean;
+}
+
+const { contained = true, ...head } = Astro.props;
+---
+
+<html lang="ko">
+  <head>
+    <BaseHead {...head} />
+    <slot name="head" />
+  </head>
+  <body>
+    <a href="#main" class="skip">본문으로 건너뛰기</a>
+    <Header />
+    <main id="main" class={contained ? 'wrap' : undefined}>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--accent);
+    color: var(--accent-fg);
+    padding: 0.5rem 1rem;
+    z-index: 100;
+  }
+
+  .skip:focus {
+    left: 0;
+  }
+</style>

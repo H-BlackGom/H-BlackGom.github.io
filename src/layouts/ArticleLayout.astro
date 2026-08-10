@@ -1,0 +1,337 @@
+---
+import type { MarkdownHeading } from 'astro';
+import BaseLayout from './BaseLayout.astro';
+import { SITE, LINKS, sectionOf, type SectionId } from '../consts';
+import { formatDate } from '../lib/content';
+
+interface Props {
+  section: SectionId;
+  title: string;
+  /**
+   * render() 가 주는 headings 를 그대로 넘기면 됩니다.
+   * h2/h3가 3개 이상일 때만 목차가 나타납니다 — 짧은 글에는 방해만 되니까요.
+   */
+  headings?: MarkdownHeading[];
+  description?: string;
+  publishedAt: Date;
+  updatedAt?: Date;
+  tags?: string[];
+  /** 외부(velog 등)에 원본이 있으면 그 URL — 검색엔진에 원본을 알려줍니다. */
+  canonical?: string;
+  /** 이 글이 원본이고 velog에 요약을 올렸으면 그 링크 */
+  crosspostedTo?: string;
+  ogImage?: string;
+  /** 시리즈 문맥 등 제목 위에 붙일 라벨 */
+  eyebrow?: string;
+}
+
+const {
+  section,
+  title,
+  description,
+  publishedAt,
+  updatedAt,
+  tags = [],
+  canonical,
+  crosspostedTo,
+  ogImage,
+  eyebrow,
+  headings = [],
+} = Astro.props;
+
+/** h4 이하는 목차에 넣지 않습니다 — 목차가 본문만큼 길어지면 쓸모가 없습니다. */
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const showToc = toc.length >= 3;
+
+const meta = sectionOf(section);
+const site = Astro.site ?? new URL('http://localhost:4321');
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  datePublished: publishedAt.toISOString(),
+  dateModified: (updatedAt ?? publishedAt).toISOString(),
+  author: { '@type': 'Person', name: SITE.author, url: LINKS.github },
+  publisher: { '@type': 'Person', name: SITE.author },
+  mainEntityOfPage: {
+    '@type': 'WebPage',
+    '@id': canonical ?? new URL(Astro.url.pathname, site).href,
+  },
+  keywords: tags.join(', ') || undefined,
+  inLanguage: 'ko-KR',
+};
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonical={canonical}
+  ogImage={ogImage}
+  ogType="article"
+  publishedAt={publishedAt}
+  updatedAt={updatedAt}
+>
+  <script
+    slot="head"
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(jsonLd)}
+  />
+
+  <article>
+    <header class="article-head page-block">
+      <p class="eyebrow">
+        <a href={meta.href}>{meta.label}</a>
+        {eyebrow && <> · {eyebrow}</>}
+      </p>
+
+      <h1>{title}</h1>
+
+      {description && <p class="article-head__desc muted">{description}</p>}
+
+      <p class="article-head__meta muted">
+        <time datetime={publishedAt.toISOString()}>
+          {formatDate(publishedAt)}
+        </time>
+        {
+          updatedAt && (
+            <>
+              {' · '}
+              <time datetime={updatedAt.toISOString()}>
+                {formatDate(updatedAt)} 수정
+              </time>
+            </>
+          )
+        }
+      </p>
+
+      {
+        tags.length > 0 && (
+          <ul class="chips article-head__tags">
+            {tags.map((tag) => (
+              <li>
+                <a class="tag" href={`/tags/${tag}`}>
+                  #{tag}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+
+      {
+        canonical && (
+          <p class="notice">
+            이 글의 원본은 <a href={canonical} rel="canonical">여기</a>에 있습니다.
+          </p>
+        )
+      }
+    </header>
+
+    <div class="article-body">
+      {
+        showToc && (
+          <nav class="toc" aria-labelledby="toc-title">
+            <p class="toc__title" id="toc-title">목차</p>
+            <ol class="toc__list">
+              {toc.map((heading) => (
+                <li class:list={['toc__item', `toc__item--d${heading.depth}`]}>
+                  <a href={`#${heading.slug}`} data-toc={heading.slug}>
+                    {heading.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )
+      }
+
+      <div class="prose">
+        <slot />
+      </div>
+    </div>
+
+    <footer class="article-foot page-block">
+      <slot name="after" />
+      {
+        crosspostedTo && (
+          <p class="muted">
+            이 글의 요약본은 <a href={crosspostedTo}>velog</a>에도 올려두었습니다.
+          </p>
+        )
+      }
+      <p class="muted">
+        <a href={meta.href}>← {meta.label} 목록으로</a>
+      </p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  /* 폭 제한 없음 — 구분선이 .wrap 전체 폭을 씁니다.
+     안쪽 텍스트는 .page-block 규칙이 --measure 로 묶습니다. */
+  .article-head {
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.25rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .article-head h1 {
+    margin-top: 0.6rem;
+  }
+
+  /* 리드문은 읽는 글 — 산세리프 */
+  .article-head__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 1.02rem;
+    line-height: 1.75;
+    margin-top: 0.9rem;
+  }
+
+  .article-head__meta {
+    font-size: var(--label);
+    margin-top: 1rem;
+    color: var(--fg-faint);
+  }
+
+  .article-head__tags {
+    margin-top: 0.8rem;
+  }
+
+  .notice {
+    margin-top: 1.2rem;
+    font-size: var(--label);
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: var(--bw) solid var(--accent);
+    padding: 0.6rem 0.85rem;
+  }
+
+  /* 좁은 화면: 목차가 본문 위에 쌓입니다.
+     넓은 화면(75rem↑): 본문 오른쪽 빈 공간에 sticky로 붙습니다.
+     46rem(본문) + 2.5rem(간격) + 14rem(레일) = 62.5rem — .wrap 안에 들어갑니다. */
+  .article-body {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 75rem) {
+    .article-body {
+      grid-template-columns: minmax(0, var(--measure)) 14rem;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .prose {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .toc {
+      grid-column: 2;
+      grid-row: 1;
+      position: sticky;
+      top: 5.5rem;
+      max-height: calc(100dvh - 8rem);
+      overflow-y: auto;
+    }
+  }
+
+  .toc {
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--bg-elev);
+    padding: 0.9rem 1.05rem;
+    max-width: var(--measure);
+  }
+
+  .toc__title {
+    font-family: var(--font-mono);
+    font-size: var(--label);
+    font-weight: 700;
+    color: var(--accent);
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .toc__list {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.6rem;
+    display: grid;
+    gap: 0.1rem;
+    counter-reset: none;
+  }
+
+  .toc__item a {
+    display: block;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    text-decoration: none;
+    color: var(--fg-muted);
+    border-left: 3px solid transparent;
+  }
+
+  .toc__item a:hover {
+    color: var(--fg);
+    background: var(--bg-sunken);
+  }
+
+  /* h3는 한 단계 들여씁니다 */
+  .toc__item--d3 a {
+    padding-left: 1.1rem;
+    font-size: 0.82rem;
+  }
+
+  /* 지금 읽는 절 */
+  .toc__item a[aria-current='true'] {
+    color: var(--accent);
+    font-weight: 700;
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .article-foot {
+    margin: 3.5rem 0 0;
+    padding-top: 1.5rem;
+    border-top: var(--bw) solid var(--border);
+    font-size: var(--label);
+    display: grid;
+    gap: 1.25rem;
+  }
+</style>
+
+<script>
+  // 지금 화면 상단에 걸린 소제목을 목차에서 강조합니다.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-toc]')];
+
+  if (links.length > 0) {
+    const byId = new Map(links.map((a) => [a.dataset.toc!, a]));
+    const targets = [...byId.keys()]
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    const setActive = (id: string) => {
+      for (const [key, link] of byId) {
+        if (key === id) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      }
+    };
+
+    // 상단 30% 밴드에 들어온 제목을 "읽고 있는 절"로 봅니다.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActive(entry.target.id);
+        }
+      },
+      { rootMargin: '-88px 0px -70% 0px' },
+    );
+
+    for (const target of targets) observer.observe(target);
+  }
+</script>

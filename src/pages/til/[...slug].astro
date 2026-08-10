@@ -1,0 +1,76 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import ArticleLayout from '../../layouts/ArticleLayout.astro';
+import { getTil, urlOf } from '../../lib/content';
+
+export const getStaticPaths = (async () => {
+  const items = await getTil();
+  return items.map((item) => ({
+    params: { slug: item.id },
+    props: { item, all: items },
+  }));
+}) satisfies GetStaticPaths;
+
+const { item, all } = Astro.props;
+const { Content, headings } = await render(item);
+
+/** 태그가 겹치는 다른 개념을 3개까지 추천 — 짧은 글일수록 다음 클릭이 중요합니다. */
+const related = all
+  .filter((other) => other.id !== item.id)
+  .map((other) => ({
+    entry: other,
+    overlap: other.data.tags.filter((tag) => item.data.tags.includes(tag))
+      .length,
+  }))
+  .filter(({ overlap }) => overlap > 0)
+  .sort((a, b) => b.overlap - a.overlap)
+  .slice(0, 3)
+  .map(({ entry }) => entry);
+---
+
+<ArticleLayout
+  section="til"
+  headings={headings}
+  title={item.data.title}
+  description={item.data.description}
+  publishedAt={item.data.publishedAt}
+  updatedAt={item.data.updatedAt}
+  tags={item.data.tags}
+  canonical={item.data.canonical}
+  crosspostedTo={item.data.crosspostedTo}
+  eyebrow={item.data.aka.length > 0 ? item.data.aka.join(' · ') : undefined}
+>
+  <Content />
+
+  {
+    related.length > 0 && (
+      <aside slot="after" class="related">
+        <p class="eyebrow">같이 보면 좋은 것</p>
+        <ul>
+          {related.map((entry) => (
+            <li>
+              <a href={urlOf.til(entry)}>{entry.data.title}</a>
+              <span class="muted"> — {entry.data.description}</span>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    )
+  }
+</ArticleLayout>
+
+<style>
+  .related ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.7rem;
+    display: grid;
+    gap: 0.5rem;
+    /* 개념 설명이 딸려 나오는 목록이라 산세리프 */
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+</style>

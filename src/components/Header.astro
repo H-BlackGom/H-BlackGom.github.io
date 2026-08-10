@@ -1,0 +1,183 @@
+---
+import { SITE, NAV } from '../consts';
+
+const path = Astro.url.pathname;
+const isCurrent = (href: string) => path === href || path.startsWith(href + '/');
+---
+
+<header class="site-head">
+  <div class="wrap site-head__inner">
+    <a href="/" class="brand" aria-label={`${SITE.title} 홈`}>
+      <span class="brand__name dot">{SITE.title}</span>
+      <span class="brand__tagline muted">{SITE.tagline}</span>
+    </a>
+
+    <nav aria-label="섹션">
+      <ul class="nav">
+        {
+          NAV.map((item) => (
+            <li>
+              <a
+                href={item.href}
+                aria-current={isCurrent(item.href) ? 'page' : undefined}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <button
+      id="theme-toggle"
+      type="button"
+      class="theme-toggle"
+      aria-label="라이트/다크 모드 전환"
+    >
+      <span aria-hidden="true" class="theme-toggle__sun">☀</span>
+      <span aria-hidden="true" class="theme-toggle__moon">☾</span>
+    </button>
+  </div>
+</header>
+
+<style>
+  /* 도트 디자인에서 blur는 이질적이라 불투명 배경 + 각진 굵은 테두리로 갑니다. */
+  .site-head {
+    border-bottom: var(--bw) solid var(--border);
+    background: var(--bg-elev);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .site-head__inner {
+    display: flex;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    flex-wrap: wrap;
+    padding-block: 0.75rem;
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    margin-right: auto;
+    line-height: 1.35;
+  }
+
+  .brand__name {
+    font-weight: 700;
+    letter-spacing: 0;
+    font-size: var(--dot-2);
+    color: var(--accent);
+  }
+
+  .brand__tagline {
+    font-size: var(--label);
+  }
+
+  .nav {
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    flex-wrap: wrap;
+  }
+
+  /* 메뉴를 각진 픽셀 버튼으로 — 텍스트 링크로 두면 11px 도트가 묻힙니다. */
+  .nav a {
+    display: block;
+    padding: 0.45rem 0.75rem;
+    border: var(--bw) solid var(--border);
+    box-shadow: 2px 2px 0 var(--border);
+    background: var(--bg);
+    font-size: var(--label);
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--fg);
+    transition:
+      transform 0.1s steps(2, end),
+      box-shadow 0.1s steps(2, end);
+  }
+
+  .nav a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 2px 2px 0 var(--accent);
+    transform: translate(-1px, -1px);
+  }
+
+  /* 현재 위치는 색을 꽉 채우고 그림자를 없애 "눌린" 상태로 보이게 합니다. */
+  .nav a[aria-current='page'] {
+    color: var(--accent-fg);
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: none;
+    transform: translate(2px, 2px);
+  }
+
+  .theme-toggle {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    font-size: var(--label);
+    border: var(--bw) solid var(--border);
+    box-shadow: 2px 2px 0 var(--border);
+    background: var(--bg);
+    color: var(--fg-muted);
+  }
+
+  .theme-toggle:hover {
+    color: var(--accent);
+  }
+
+  /* 눌리는 느낌 — 그림자가 사라지고 살짝 밀립니다. */
+  .theme-toggle:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  /* 현재 테마에 맞는 아이콘 하나만 보여줍니다 */
+  .theme-toggle__moon {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .theme-toggle__sun {
+      display: none;
+    }
+    :root:not([data-theme='light']) .theme-toggle__moon {
+      display: block;
+    }
+  }
+
+  :root[data-theme='dark'] .theme-toggle__sun {
+    display: none;
+  }
+  :root[data-theme='dark'] .theme-toggle__moon {
+    display: block;
+  }
+  :root[data-theme='light'] .theme-toggle__sun {
+    display: block;
+  }
+  :root[data-theme='light'] .theme-toggle__moon {
+    display: none;
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  toggle?.addEventListener('click', () => {
+    const root = document.documentElement;
+    const prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const current = root.dataset.theme ?? (prefersDark ? 'dark' : 'light');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {}
+  });
+</script>

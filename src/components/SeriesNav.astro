@@ -1,0 +1,218 @@
+---
+import type { DeepdiveEntry, Series } from '../lib/content';
+import { urlOf, neighborsInSeries } from '../lib/content';
+
+interface Props {
+  series: Series;
+  episodes: DeepdiveEntry[];
+  current: DeepdiveEntry;
+}
+
+const { series, episodes, current } = Astro.props;
+const { index, total, prev, next } = neighborsInSeries(episodes, current);
+
+/** 예정 편수를 적어뒀으면 그걸 기준으로, 아니면 지금까지 쓴 편 수 기준. */
+const denominator = Math.max(series.data.plannedCount ?? total, total);
+const percent = Math.round(((index + 1) / denominator) * 100);
+
+const statusLabel = {
+  ongoing: '연재 중',
+  done: '완결',
+  paused: '중단',
+}[series.data.status];
+---
+
+<nav class="series" aria-label="시리즈 목차">
+  <div class="series__head">
+    <p class="eyebrow">딥다이브 시리즈 · {statusLabel}</p>
+    <a href={urlOf.series(series)} class="series__title">
+      {series.data.title}
+    </a>
+    <p class="muted series__count">
+      {index + 1} / {denominator}편
+      {series.data.plannedCount == null && ' (예정 편수 미정)'}
+    </p>
+    <div
+      class="series__bar"
+      role="progressbar"
+      aria-valuenow={percent}
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-label="시리즈 진행률"
+    >
+      <span style={`width:${percent}%`}></span>
+    </div>
+  </div>
+
+  <ol class="series__list">
+    {
+      episodes.map((episode, i) => {
+        const isCurrent = episode.id === current.id;
+        return (
+          <li class:list={['series__item', { 'is-current': isCurrent }]}>
+            <a
+              href={urlOf.deepdive(episode)}
+              aria-current={isCurrent ? 'page' : undefined}
+            >
+              <span class="series__num">{i + 1}</span>
+              <span>
+                {episode.data.title}
+                {episode.data.takeaway && (
+                  <small class="muted series__takeaway">
+                    {episode.data.takeaway}
+                  </small>
+                )}
+              </span>
+            </a>
+          </li>
+        );
+      })
+    }
+  </ol>
+
+  {
+    (prev || next) && (
+      <div class="series__jump">
+        {prev ? (
+          <a href={urlOf.deepdive(prev)} class="card series__jump-link">
+            <span class="eyebrow">이전 편</span>
+            <span>{prev.data.title}</span>
+          </a>
+        ) : (
+          <span />
+        )}
+        {next && (
+          <a
+            href={urlOf.deepdive(next)}
+            class="card series__jump-link series__jump-link--next"
+          >
+            <span class="eyebrow">다음 편</span>
+            <span>{next.data.title}</span>
+          </a>
+        )}
+      </div>
+    )
+  }
+</nav>
+
+<style>
+  .series {
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--bg-elev);
+    padding: 1.25rem;
+    max-width: var(--measure);
+  }
+
+  .series__title {
+    display: block;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0;
+    margin-top: 0.35rem;
+    text-decoration: none;
+  }
+
+  .series__title:hover {
+    color: var(--accent);
+  }
+
+  .series__count {
+    font-size: var(--label);
+    margin-top: 0.2rem;
+  }
+
+  /* 진행바도 도트로 — 둥근 막대 대신 각진 칸에 색이 차오릅니다. */
+  .series__bar {
+    height: 8px;
+    border: var(--bw) solid var(--border);
+    background-color: var(--bg-sunken);
+    background-image: radial-gradient(var(--dot) 1px, transparent 0);
+    background-size: 4px 4px;
+    overflow: hidden;
+    margin-top: 0.7rem;
+  }
+
+  .series__bar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+
+  .series__list {
+    list-style: none;
+    padding: 0;
+    margin-top: 1.1rem;
+    border-top: 1px solid var(--border);
+    counter-reset: none;
+  }
+
+  .series__item {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .series__item a {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr;
+    gap: 0.6rem;
+    padding: 0.6rem 0.2rem;
+    text-decoration: none;
+    font-size: var(--label);
+    line-height: 1.75;
+    color: var(--fg-muted);
+  }
+
+  .series__item a:hover {
+    color: var(--fg);
+  }
+
+  .series__item.is-current a {
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .series__num {
+    font-size: var(--label);
+    color: var(--fg-faint);
+    text-align: right;
+  }
+
+  .series__item.is-current .series__num {
+    color: var(--accent);
+  }
+
+  .series__takeaway {
+    display: block;
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.65;
+    margin-top: 0.1rem;
+  }
+
+  .series__jump {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1.1rem;
+  }
+
+  .series__jump-link {
+    font-size: var(--label);
+    line-height: 1.7;
+  }
+
+  .series__jump-link--next {
+    text-align: right;
+  }
+
+  @media (max-width: 30rem) {
+    .series__jump {
+      grid-template-columns: 1fr;
+    }
+    .series__jump-link--next {
+      text-align: left;
+    }
+  }
+</style>

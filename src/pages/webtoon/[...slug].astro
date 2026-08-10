@@ -1,0 +1,183 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import WebtoonViewer from '../../components/WebtoonViewer.astro';
+import { getWebtoons, urlOf, formatDate } from '../../lib/content';
+import { SITE, LINKS } from '../../consts';
+
+export const getStaticPaths = (async () => {
+  const episodes = await getWebtoons();
+  return episodes.map((episode, i) => ({
+    params: { slug: episode.id },
+    props: {
+      episode,
+      // getWebtoons()는 최신순이므로 "다음 화"가 배열에서 앞쪽입니다.
+      next: episodes[i - 1],
+      prev: episodes[i + 1],
+    },
+  }));
+}) satisfies GetStaticPaths;
+
+const { episode, prev, next } = Astro.props;
+const { Content } = await render(episode);
+const { data } = episode;
+
+const site = Astro.site ?? new URL('http://localhost:4321');
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: `${data.episode}화 ${data.title}`,
+  description: data.description,
+  datePublished: data.publishedAt.toISOString(),
+  dateModified: (data.updatedAt ?? data.publishedAt).toISOString(),
+  author: { '@type': 'Person', name: SITE.author, url: LINKS.github },
+  image: data.panels
+    .slice(0, 3)
+    .map((panel) => new URL(panel.src, site).href),
+  inLanguage: 'ko-KR',
+};
+---
+
+<BaseLayout
+  title={`${data.episode}화 ${data.title}`}
+  description={data.description}
+  ogImage={data.cover ?? data.panels[0].src}
+  ogType="article"
+  publishedAt={data.publishedAt}
+  updatedAt={data.updatedAt}
+  contained={false}
+>
+  <script
+    slot="head"
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(jsonLd)}
+  />
+
+  <article>
+    <header class="wrap toon-head">
+      <p class="eyebrow">
+        <a href="/webtoon">웹툰</a> · {data.episode}화
+      </p>
+      <h1>{data.title}</h1>
+      {data.description && <p class="muted toon-head__desc">{data.description}</p>}
+      <p class="muted toon-head__meta">
+        <time datetime={data.publishedAt.toISOString()}>
+          {formatDate(data.publishedAt)}
+        </time>
+        {' · '}
+        {data.panels.length}컷
+        {data.format === 'carousel' && ' · 가로 스와이프'}
+      </p>
+    </header>
+
+    <WebtoonViewer
+      panels={data.panels}
+      format={data.format}
+      title={data.title}
+    />
+
+    <div class="wrap toon-after">
+      <!-- 본문(작가의 말)은 있으면 그리고, 없으면 빈 채로 지나갑니다. -->
+      <div class="prose toon-note">
+        <Content />
+      </div>
+
+      <nav class="toon-nav" aria-label="화 이동">
+        {
+          prev ? (
+            <a class="card toon-nav__link" href={urlOf.webtoon(prev)}>
+              <span class="eyebrow">이전 {prev.data.episode}화</span>
+              <span>{prev.data.title}</span>
+            </a>
+          ) : (
+            <span />
+          )
+        }
+        {
+          next && (
+            <a
+              class="card toon-nav__link toon-nav__link--next"
+              href={urlOf.webtoon(next)}
+            >
+              <span class="eyebrow">다음 {next.data.episode}화</span>
+              <span>{next.data.title}</span>
+            </a>
+          )
+        }
+      </nav>
+
+      <p class="muted toon-back">
+        <a href="/webtoon">← 전체 목록</a>
+      </p>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .toon-head {
+    max-width: calc(var(--webtoon-w) + 6rem);
+    margin-inline: auto;
+    padding-bottom: 1.75rem;
+    text-align: center;
+  }
+
+  .toon-head h1 {
+    margin-top: 0.3rem;
+  }
+
+  .toon-head__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.98rem;
+    line-height: 1.75;
+    margin-top: 0.8rem;
+  }
+
+  .toon-head__meta {
+    font-size: var(--label);
+    margin-top: 1rem;
+    color: var(--fg-faint);
+  }
+
+  .toon-after {
+    max-width: calc(var(--webtoon-w) + 6rem);
+    margin-inline: auto;
+    padding-top: 2.25rem;
+  }
+
+  .toon-note:empty {
+    display: none;
+  }
+
+  .toon-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .toon-nav__link {
+    font-size: var(--label);
+    line-height: 1.7;
+  }
+
+  .toon-nav__link--next {
+    text-align: right;
+  }
+
+  .toon-back {
+    margin-top: 1.5rem;
+    font-size: var(--label);
+  }
+
+  @media (max-width: 30rem) {
+    .toon-nav {
+      grid-template-columns: 1fr;
+    }
+    .toon-nav__link--next {
+      text-align: left;
+    }
+  }
+</style>

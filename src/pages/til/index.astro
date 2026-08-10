@@ -1,0 +1,244 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sectionOf } from '../../consts';
+import { getTil, urlOf, tagCounts, formatDate } from '../../lib/content';
+
+const section = sectionOf('til');
+const items = await getTil();
+const tags = tagCounts(items.map((item) => item.data));
+
+/** 검색용 인덱스를 data 속성에 미리 심어둡니다 — 런타임 fetch 없이 즉시 필터. */
+const searchKey = (item: (typeof items)[number]) =>
+  [
+    item.data.title,
+    item.data.description,
+    ...item.data.aka,
+    ...item.data.tags,
+  ]
+    .join(' ')
+    .toLowerCase();
+---
+
+<BaseLayout
+  title={section.label}
+  description={`${section.blurb} — 짧게 정리한 개념 ${items.length}개. 검색해서 찾아 쓰세요.`}
+>
+  <header class="list-head page-block">
+    <p class="eyebrow">{items.length}개</p>
+    <h1 class="dot section-title">{section.label}</h1>
+    <p class="muted">{section.blurb}</p>
+  </header>
+
+  {
+    items.length === 0 ? (
+      <p class="muted">
+        <code>src/content/til/</code> 에 첫 개념을 넣어보세요.
+      </p>
+    ) : (
+      <>
+        <div class="filters">
+          <label class="search">
+            <span class="visually-hidden">개념 검색</span>
+            <input
+              type="search"
+              id="til-search"
+              placeholder="개념 검색 (예: 멱등성, N+1)"
+              autocomplete="off"
+            />
+          </label>
+
+          <ul class="chips" id="til-tags">
+            <li>
+              <button class="tag" type="button" data-tag="" aria-pressed="true">
+                전체 {items.length}
+              </button>
+            </li>
+            {tags.map(([tag, count]) => (
+              <li>
+                <button
+                  class="tag"
+                  type="button"
+                  data-tag={tag}
+                  aria-pressed="false"
+                >
+                  {tag} {count}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p class="muted til-count" id="til-count" aria-live="polite"></p>
+
+        <ul class="til-wall" id="til-wall">
+          {items.map((item) => (
+            <li
+              class="til-cell"
+              data-search={searchKey(item)}
+              data-tags={item.data.tags.join('|')}
+            >
+              <a class="card til-card" href={urlOf.til(item)}>
+                <h2 class="til-card__term">{item.data.title}</h2>
+                {item.data.aka.length > 0 && (
+                  <p class="til-card__aka muted">{item.data.aka.join(' · ')}</p>
+                )}
+                <p class="til-card__desc">{item.data.description}</p>
+                <p class="til-card__foot muted">
+                  <time datetime={item.data.publishedAt.toISOString()}>
+                    {formatDate(item.data.publishedAt)}
+                  </time>
+                </p>
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <p class="muted til-empty" id="til-empty" hidden>
+          조건에 맞는 개념이 없습니다.
+        </p>
+      </>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .list-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .list-head h1 {
+    margin-top: 0.4rem;
+  }
+
+  .list-head p:last-child {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.95rem;
+    margin-top: 0.7rem;
+  }
+
+  .filters {
+    display: grid;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .search input {
+    width: min(100%, 22rem);
+    font: inherit;
+    font-size: var(--label);
+    padding: 0.55rem 0.7rem;
+    color: var(--fg);
+    background: var(--bg-elev);
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .search input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 3px 3px 0 var(--accent);
+  }
+
+  .search input::placeholder {
+    color: var(--fg-faint);
+  }
+
+  .til-count {
+    font-size: var(--label);
+    margin-bottom: 1rem;
+    min-height: 1.3em;
+  }
+
+  .til-wall {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  }
+
+  .til-cell[hidden] {
+    display: none;
+  }
+
+  .til-card {
+    height: 100%;
+    display: grid;
+    align-content: start;
+    gap: 0.35rem;
+    padding: 1rem 1.1rem;
+  }
+
+  .til-card__term {
+    font-size: 1.05rem;
+    letter-spacing: 0;
+    color: var(--accent);
+  }
+
+  .til-card__aka {
+    font-size: var(--label);
+  }
+
+  /* 카드 본문은 개념 설명 — 읽는 글이므로 산세리프 */
+  .til-card__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-top: 0.35rem;
+  }
+
+  .til-card__foot {
+    font-size: var(--label);
+    margin-top: 0.6rem;
+    color: var(--fg-faint);
+  }
+</style>
+
+<script>
+  const wall = document.getElementById('til-wall');
+  const search = document.getElementById('til-search') as HTMLInputElement | null;
+  const tagBar = document.getElementById('til-tags');
+  const count = document.getElementById('til-count');
+  const empty = document.getElementById('til-empty');
+
+  if (wall && search && tagBar && count && empty) {
+    const cells = [...wall.querySelectorAll<HTMLElement>('.til-cell')];
+    const buttons = [...tagBar.querySelectorAll<HTMLButtonElement>('button')];
+    let activeTag = '';
+
+    const apply = () => {
+      const query = search.value.trim().toLowerCase();
+      let shown = 0;
+
+      for (const cell of cells) {
+        const haystack = cell.dataset.search ?? '';
+        const cellTags = (cell.dataset.tags ?? '').split('|');
+        const matchesQuery = query === '' || haystack.includes(query);
+        const matchesTag = activeTag === '' || cellTags.includes(activeTag);
+        const visible = matchesQuery && matchesTag;
+        cell.hidden = !visible;
+        if (visible) shown += 1;
+      }
+
+      const filtered = query !== '' || activeTag !== '';
+      count.textContent = filtered ? `${shown}개 표시 중` : '';
+      empty.hidden = shown !== 0;
+    };
+
+    search.addEventListener('input', apply);
+
+    tagBar.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest('button');
+      if (!button) return;
+      activeTag = button.dataset.tag ?? '';
+      for (const b of buttons) {
+        b.setAttribute('aria-pressed', String(b === button));
+      }
+      apply();
+    });
+  }
+</script>

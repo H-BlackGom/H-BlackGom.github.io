@@ -1,0 +1,7 @@
+{
+  "title": "OpenSearch Architecture 해부",
+  "description": "OpenSearch가 색인을 만들고 질의를 처리하는 과정을, 숲에서 시작해 나무까지 따라갑니다.",
+  "status": "ongoing",
+  "startedAt": "2025-12-30",
+  "plannedCount": 6
+}

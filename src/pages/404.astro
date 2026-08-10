@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SECTIONS } from '../consts';
+---
+
+<BaseLayout title="없는 페이지" noindex>
+  <div class="notfound">
+    <p class="eyebrow">404</p>
+    <h1>여긴 아무것도 없습니다</h1>
+    <p class="muted">
+      주소가 바뀌었거나, 아직 쓰지 않은 글일 수 있습니다.
+    </p>
+    <ul class="chips notfound__links">
+      {
+        SECTIONS.map((section) => (
+          <li>
+            <a class="tag" href={section.href}>
+              {section.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .notfound {
+    max-width: var(--measure);
+    padding-block: clamp(2rem, 8vw, 5rem);
+  }
+
+  .notfound h1 {
+    margin-top: 0.3rem;
+  }
+
+  .notfound p:not(.eyebrow) {
+    margin-top: 0.7rem;
+  }
+
+  .notfound__links {
+    margin-top: 1.5rem;
+  }
+</style>

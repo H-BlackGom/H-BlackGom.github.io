@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+
+# src/content/ 를 옵시디언 볼트로 열 때 생기는 것들.
+# 설정(app.json 등)은 커밋해서 레포와 함께 옮겨지게 하고, 창 상태만 무시합니다.
+src/content/.obsidian/workspace*.json
+src/content/.obsidian/cache
+*.log
+.env
+.env.production
+.vercel
+.output

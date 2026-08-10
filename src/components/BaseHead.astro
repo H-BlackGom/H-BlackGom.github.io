@@ -1,0 +1,92 @@
+---
+import { SITE } from '../consts';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** velog 등 외부에 원본이 있는 글이면 그 URL. 없으면 자기 자신이 원본. */
+  canonical?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishedAt?: Date;
+  updatedAt?: Date;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = SITE.description,
+  canonical,
+  ogImage = '/og-default.png',
+  ogType = 'website',
+  publishedAt,
+  updatedAt,
+  noindex = false,
+} = Astro.props;
+
+const site = Astro.site ?? new URL('http://localhost:4321');
+const selfUrl = new URL(Astro.url.pathname, site).href;
+const canonicalUrl = canonical ?? selfUrl;
+const ogImageUrl = new URL(ogImage, site).href;
+const fullTitle = title === SITE.title ? title : `${title} · ${SITE.title}`;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalUrl} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<meta property="og:type" content={ogType} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={selfUrl} />
+<meta property="og:image" content={ogImageUrl} />
+<meta property="og:site_name" content={SITE.title} />
+<meta property="og:locale" content="ko_KR" />
+{publishedAt && (
+  <meta property="article:published_time" content={publishedAt.toISOString()} />
+)}
+{updatedAt && (
+  <meta property="article:modified_time" content={updatedAt.toISOString()} />
+)}
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageUrl} />
+
+<link
+  rel="alternate"
+  type="application/rss+xml"
+  title={SITE.title}
+  href={new URL('/rss.xml', site).href}
+/>
+<link rel="sitemap" href="/sitemap-index.xml" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+<!-- 도트 폰트(Galmuri11)는 제목·네비에 바로 쓰이므로 Regular만 미리 받습니다.
+     Bold(163K)는 swap으로 늦게 들어와도 티가 크지 않습니다. -->
+<link
+  rel="preload"
+  href="/fonts/Galmuri11.woff2"
+  as="font"
+  type="font/woff2"
+  crossorigin="anonymous"
+/>
+
+<!-- 테마 깜빡임(FOUC) 방지: 스타일 적용 전에 동기 실행 -->
+<script is:inline>
+  (() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.dataset.theme = saved;
+      }
+    } catch {}
+  })();
+</script>

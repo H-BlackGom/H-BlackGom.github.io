@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { sectionOf } from '../../consts';
+import { getNotes, urlOf } from '../../lib/content';
+
+const section = sectionOf('notes');
+const notes = await getNotes();
+---
+
+<BaseLayout
+  title={section.label}
+  description={`${section.blurb} — 주제를 가리지 않고 그때그때 남긴 글 ${notes.length}개.`}
+>
+  <header class="list-head page-block">
+    <p class="eyebrow">{notes.length}개</p>
+    <h1 class="dot section-title">{section.label}</h1>
+    <p class="muted">{section.blurb}</p>
+  </header>
+
+  {
+    notes.length === 0 ? (
+      <p class="muted">
+        <code>src/content/notes/</code> 에 첫 노트를 넣어보세요.
+      </p>
+    ) : (
+      <div class="grid">
+        {notes.map((note) => (
+          <PostCard
+            href={urlOf.note(note)}
+            title={note.data.title}
+            description={note.data.description}
+            publishedAt={note.data.publishedAt}
+            tags={note.data.tags}
+          />
+        ))}
+      </div>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .list-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .list-head h1 {
+    margin-top: 0.4rem;
+  }
+
+  .list-head p:last-child {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.95rem;
+    margin-top: 0.7rem;
+  }
+</style>

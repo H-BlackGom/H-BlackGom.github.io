@@ -1,0 +1,12 @@
+[
+  {
+    "id": "reading",
+    "label": "요즘 읽는 것",
+    "value": "Designing Data-Intensive Applications"
+  },
+  {
+    "id": "building",
+    "label": "요즘 만드는 것",
+    "value": "형로이드 — Slack에서 굴리는 분신 에이전트"
+  }
+]

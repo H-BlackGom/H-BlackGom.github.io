@@ -1,0 +1,280 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE, LINKS, sectionOf } from '../../consts';
+import { getRecipes, formatDate } from '../../lib/content';
+
+export const getStaticPaths = (async () => {
+  const recipes = await getRecipes();
+  return recipes.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}) satisfies GetStaticPaths;
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const section = sectionOf('recipe');
+const site = Astro.site ?? new URL('http://localhost:4321');
+
+/**
+ * schema.org/Recipe — 구글 레시피 리치 결과(사진·시간·별점 카드)의 입력값입니다.
+ * 블로그 글 중 검색 노출이 가장 유리한 종류라 구조화 데이터를 제대로 넣어둡니다.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Recipe',
+  name: data.title,
+  description: data.description,
+  datePublished: data.publishedAt.toISOString(),
+  author: { '@type': 'Person', name: SITE.author, url: LINKS.github },
+  recipeYield: data.servings,
+  // ISO 8601 duration. 30분 → PT30M
+  totalTime: `PT${data.totalMinutes}M`,
+  recipeIngredient: data.ingredients.flatMap((g) => g.items),
+  keywords: data.tags.join(', ') || undefined,
+  inLanguage: 'ko-KR',
+  ...(data.cover ? { image: [new URL(data.cover, site).href] } : {}),
+};
+---
+
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  canonical={data.canonical}
+  ogImage={data.cover}
+  ogType="article"
+  publishedAt={data.publishedAt}
+  updatedAt={data.updatedAt}
+>
+  <script
+    slot="head"
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(jsonLd)}
+  />
+
+  <article>
+    <header class="recipe-head page-block">
+      <p class="eyebrow">
+        <a href={section.href}>{section.label}</a>
+      </p>
+
+      <h1>{data.title}</h1>
+
+      {data.description && <p class="recipe-head__desc muted">{data.description}</p>}
+
+      <ul class="recipe-facts">
+        <li>
+          <span class="recipe-facts__label">시간</span>
+          <span>{data.totalMinutes}분</span>
+        </li>
+        <li>
+          <span class="recipe-facts__label">분량</span>
+          <span>{data.servings}</span>
+        </li>
+        <li>
+          <span class="recipe-facts__label">아이</span>
+          <span>{data.kidFriendly ? '함께 먹을 수 있음' : '어른 입맛'}</span>
+        </li>
+      </ul>
+
+      <p class="recipe-head__meta muted">
+        <time datetime={data.publishedAt.toISOString()}>
+          {formatDate(data.publishedAt)}
+        </time>
+      </p>
+
+      {
+        data.tags.length > 0 && (
+          <ul class="chips recipe-head__tags">
+            {data.tags.map((tag) => (
+              <li>
+                <a class="tag" href={`/tags/${tag}`}>
+                  #{tag}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </header>
+
+    <div class="recipe-body">
+      <section class="ingredients" aria-labelledby="ingredients-heading">
+        <h2 id="ingredients-heading" class="ingredients__title">재료</h2>
+        {
+          data.ingredients.map((group) => (
+            <div class="ingredients__group">
+              {group.group && (
+                <p class="ingredients__group-name">{group.group}</p>
+              )}
+              <ul>
+                {group.items.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </section>
+
+      <div class="prose">
+        <Content />
+      </div>
+    </div>
+
+    <footer class="recipe-foot page-block">
+      {
+        data.crosspostedTo && (
+          <p class="muted">
+            이 레시피의 요약본은 <a href={data.crosspostedTo}>velog</a>에도 있습니다.
+          </p>
+        )
+      }
+      <p class="muted">
+        <a href={section.href}>← {section.label} 목록으로</a>
+      </p>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .recipe-head {
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.25rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .recipe-head h1 {
+    margin-top: 0.6rem;
+  }
+
+  .recipe-head__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 1.02rem;
+    line-height: 1.75;
+    margin-top: 0.9rem;
+  }
+
+  /* 시간·분량·아이 여부 — 요리 전에 가장 먼저 확인하는 세 가지 */
+  .recipe-facts {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.2rem;
+  }
+
+  .recipe-facts li {
+    display: grid;
+    gap: 0.15rem;
+    border: var(--bw) solid var(--border);
+    box-shadow: 2px 2px 0 var(--border);
+    background: var(--bg-elev);
+    padding: 0.5rem 0.8rem;
+    font-size: var(--label);
+    min-width: 6.5rem;
+  }
+
+  .recipe-facts__label {
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+
+  .recipe-head__meta {
+    font-size: var(--label);
+    margin-top: 1rem;
+    color: var(--fg-faint);
+  }
+
+  .recipe-head__tags {
+    margin-top: 0.8rem;
+  }
+
+  /* 넓은 화면에서는 재료를 왼쪽에 고정해두고 만드는 법을 오른쪽에서 읽습니다.
+     요리하면서 재료를 다시 확인하려고 스크롤을 올릴 일이 없어집니다. */
+  .recipe-body {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 60rem) {
+    .recipe-body {
+      grid-template-columns: 15rem minmax(0, var(--measure));
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .ingredients {
+      position: sticky;
+      top: 5.5rem;
+    }
+  }
+
+  .ingredients {
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--bg-elev);
+    padding: 1.1rem 1.25rem;
+    max-width: var(--measure);
+  }
+
+  .ingredients__title {
+    font-size: 1.05rem;
+    color: var(--accent);
+    padding-bottom: 0.6rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .ingredients__group + .ingredients__group {
+    margin-top: 1rem;
+  }
+
+  .ingredients__group-name {
+    font-family: var(--font-mono);
+    font-size: var(--label);
+    color: var(--fg-faint);
+    margin-top: 0.9rem;
+  }
+
+  .ingredients ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 0.5rem;
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  /* 재료 앞 네모 도트 */
+  .ingredients li {
+    position: relative;
+    padding-left: 0.85rem;
+  }
+
+  .ingredients li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+  }
+
+  .recipe-foot {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: var(--bw) solid var(--border);
+    font-size: var(--label);
+    display: grid;
+    gap: 1.25rem;
+  }
+</style>

@@ -1,0 +1,91 @@
+---
+import { formatDate } from '../lib/content';
+import { sectionOf, type SectionId } from '../consts';
+
+interface Props {
+  href: string;
+  title: string;
+  description?: string;
+  publishedAt: Date;
+  /** 배지로 섹션을 표시할 때. 홈처럼 여러 섹션이 섞이는 목록에서만 씁니다. */
+  section?: SectionId;
+  /** "시리즈명 3편", "12화" 같은 부가 문맥 */
+  context?: string;
+  tags?: string[];
+}
+
+const { href, title, description, publishedAt, section, context, tags = [] } =
+  Astro.props;
+---
+
+<article>
+  <a class="card post-card" href={href}>
+    <div class="post-card__meta">
+      {section && <span class="pill">{sectionOf(section).label}</span>}
+      {context && <span class="muted">{context}</span>}
+      <time datetime={publishedAt.toISOString()} class="muted post-card__date">
+        {formatDate(publishedAt)}
+      </time>
+    </div>
+
+    <h3 class="post-card__title">{title}</h3>
+
+    {description && <p class="muted post-card__desc">{description}</p>}
+
+    {
+      tags.length > 0 && (
+        <p class="post-card__tags">
+          {tags.slice(0, 4).map((tag) => (
+            <span class="tag tag--quiet">{tag}</span>
+          ))}
+        </p>
+      )
+    }
+  </a>
+</article>
+
+<style>
+  .post-card {
+    height: 100%;
+  }
+
+  .post-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: var(--label);
+    line-height: 1.7;
+  }
+
+  .post-card__date {
+    margin-left: auto;
+    color: var(--fg-faint);
+  }
+
+  .post-card__title {
+    font-size: 1.05rem;
+    margin-top: 0.55rem;
+  }
+
+  /* 설명은 읽는 글이라 산세리프. 도트로 두면 카드가 안 읽힙니다. */
+  .post-card__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-top: 0.45rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .post-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.7rem;
+  }
+</style>

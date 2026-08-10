@@ -1,0 +1,55 @@
+---
+import { SITE, LINKS } from '../consts';
+
+const year = new Date().getFullYear();
+const links = [
+  { label: 'RSS', href: '/rss.xml' },
+  { label: 'GitHub', href: LINKS.github },
+  { label: 'velog', href: LINKS.velog },
+  LINKS.instagram ? { label: 'Instagram', href: LINKS.instagram } : null,
+].filter((l): l is { label: string; href: string } => l !== null);
+---
+
+<footer class="site-foot">
+  <div class="wrap site-foot__inner">
+    <p class="muted">
+      © {year} {SITE.author} · <span class="site-foot__en">{SITE.titleEn}</span>
+    </p>
+    <ul class="chips">
+      {
+        links.map((link) => (
+          <li>
+            <a href={link.href} rel="me noopener">
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</footer>
+
+<style>
+  .site-foot {
+    border-top: var(--bw) solid var(--border);
+    background: var(--bg-elev);
+    padding-block: 1.5rem;
+    font-size: var(--label);
+  }
+
+  .site-foot__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .site-foot__en {
+    color: var(--fg-faint);
+  }
+
+  .site-foot .chips {
+    gap: 1rem;
+  }
+</style>

@@ -1,0 +1,187 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sectionOf } from '../../consts';
+import { getSeriesList, urlOf, formatDate } from '../../lib/content';
+
+const section = sectionOf('deepdive');
+const seriesList = await getSeriesList();
+
+const statusLabel = { ongoing: '연재 중', done: '완결', paused: '중단' };
+---
+
+<BaseLayout
+  title={section.label}
+  description={`${section.blurb} — 시리즈 ${seriesList.length}개.`}
+>
+  <header class="list-head page-block">
+    <p class="eyebrow">시리즈 {seriesList.length}개</p>
+    <h1 class="dot section-title">{section.label}</h1>
+    <p class="muted">{section.blurb}</p>
+  </header>
+
+  {
+    seriesList.length === 0 ? (
+      <p class="muted">
+        시리즈를 시작하려면 <code>src/content/series/&lt;슬러그&gt;.json</code> 과
+        <code>src/content/deepdive/&lt;슬러그&gt;/01-....md</code> 를 만드세요.
+      </p>
+    ) : (
+      <ul class="series-list">
+        {seriesList.map(({ series, episodes }) => {
+          const total = Math.max(
+            series.data.plannedCount ?? episodes.length,
+            episodes.length,
+          );
+          const percent = total ? Math.round((episodes.length / total) * 100) : 0;
+          return (
+            <li class="series-row">
+              <div class="series-row__head">
+                <p class="eyebrow">
+                  {statusLabel[series.data.status]} · {formatDate(series.data.startedAt)} 시작
+                </p>
+                <h2>
+                  <a href={urlOf.series(series)}>{series.data.title}</a>
+                </h2>
+                <p class="muted series-row__desc">{series.data.description}</p>
+                <p class="muted series-row__count">
+                  {episodes.length} / {total}편
+                  {series.data.plannedCount == null && ' (예정 편수 미정)'}
+                </p>
+                <div class="series-row__bar" aria-hidden="true">
+                  <span style={`width:${percent}%`} />
+                </div>
+              </div>
+
+              <ol class="series-row__episodes">
+                {episodes.map((episode, i) => (
+                  <li>
+                    <a href={urlOf.deepdive(episode)}>
+                      <span class="series-row__num">{i + 1}</span>
+                      <span>{episode.data.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </li>
+          );
+        })}
+      </ul>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .list-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .list-head h1 {
+    margin-top: 0.4rem;
+  }
+
+  .list-head p:last-child {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.95rem;
+    margin-top: 0.7rem;
+  }
+
+  .series-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .series-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 1.5rem;
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--bg-elev);
+    padding: 1.35rem 1.5rem;
+  }
+
+  .series-row h2 {
+    margin-top: 0.35rem;
+  }
+
+  .series-row h2 a {
+    text-decoration: none;
+  }
+
+  .series-row h2 a:hover {
+    color: var(--accent);
+  }
+
+  .series-row__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.93rem;
+    line-height: 1.75;
+    margin-top: 0.6rem;
+  }
+
+  .series-row__count {
+    font-size: var(--label);
+    margin-top: 1rem;
+  }
+
+  .series-row__bar {
+    height: 8px;
+    border: var(--bw) solid var(--border);
+    background-color: var(--bg-sunken);
+    background-image: radial-gradient(var(--dot) 1px, transparent 0);
+    background-size: 4px 4px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+  }
+
+  .series-row__bar > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+
+  .series-row__episodes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    align-self: start;
+  }
+
+  .series-row__episodes li + li {
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .series-row__episodes a {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    font-size: var(--label);
+    line-height: 1.7;
+    text-decoration: none;
+    color: var(--fg-muted);
+  }
+
+  .series-row__episodes a:hover {
+    color: var(--accent);
+  }
+
+  .series-row__num {
+    font-size: var(--label);
+    color: var(--fg-faint);
+    text-align: right;
+  }
+
+  @media (max-width: 46rem) {
+    .series-row {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+</style>

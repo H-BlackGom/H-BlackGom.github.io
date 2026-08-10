@@ -1,0 +1,121 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sectionOf } from '../../consts';
+import { getRecipes, urlOf, formatDate } from '../../lib/content';
+
+const section = sectionOf('recipe');
+const recipes = await getRecipes();
+---
+
+<BaseLayout
+  title={section.label}
+  description={`${section.blurb} — 레시피 ${recipes.length}개.`}
+>
+  <header class="list-head page-block">
+    <p class="eyebrow">{recipes.length}개</p>
+    <h1 class="dot section-title">{section.label}</h1>
+    <p class="muted">{section.blurb}</p>
+  </header>
+
+  {
+    recipes.length === 0 ? (
+      <p class="muted">
+        <code>src/content/recipe/</code> 에 첫 레시피를 넣어보세요.
+      </p>
+    ) : (
+      <ul class="recipe-grid">
+        {recipes.map((entry) => (
+          <li>
+            <a class="card recipe-card" href={urlOf.recipe(entry)}>
+              <p class="recipe-card__meta">
+                <span class="pill">{entry.data.totalMinutes}분</span>
+                <span class="muted">{entry.data.servings}</span>
+                {entry.data.kidFriendly && (
+                  <span class="recipe-card__kid">아이도 OK</span>
+                )}
+              </p>
+              <h2 class="recipe-card__title">{entry.data.title}</h2>
+              {entry.data.description && (
+                <p class="recipe-card__desc">{entry.data.description}</p>
+              )}
+              <p class="recipe-card__foot muted">
+                <time datetime={entry.data.publishedAt.toISOString()}>
+                  {formatDate(entry.data.publishedAt)}
+                </time>
+              </p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .list-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .list-head h1 {
+    margin-top: 0.4rem;
+  }
+
+  .list-head p:last-child {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.95rem;
+    margin-top: 0.7rem;
+  }
+
+  .recipe-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1.1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  }
+
+  .recipe-card {
+    height: 100%;
+    display: grid;
+    align-content: start;
+  }
+
+  .recipe-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: var(--label);
+  }
+
+  .recipe-card__kid {
+    font-family: var(--font-mono);
+    font-size: var(--label);
+    padding: 0.1em 0.45em;
+    border: 1px solid var(--border-soft);
+    color: var(--fg-muted);
+  }
+
+  .recipe-card__title {
+    font-size: 1.05rem;
+    margin-top: 0.6rem;
+  }
+
+  .recipe-card__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--fg-muted);
+    margin-top: 0.4rem;
+  }
+
+  .recipe-card__foot {
+    font-size: var(--label);
+    color: var(--fg-faint);
+    margin-top: 0.8rem;
+  }
+</style>

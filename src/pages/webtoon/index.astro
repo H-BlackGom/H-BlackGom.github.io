@@ -1,0 +1,168 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sectionOf, LINKS } from '../../consts';
+import { getWebtoons, urlOf, formatDate } from '../../lib/content';
+
+const section = sectionOf('webtoon');
+const episodes = await getWebtoons();
+---
+
+<BaseLayout
+  title={section.label}
+  description={`${section.blurb} — ${episodes.length}화까지.`}
+>
+  <header class="list-head page-block">
+    <p class="eyebrow">{episodes.length}화</p>
+    <h1 class="dot section-title">{section.label}</h1>
+    <p class="muted">{section.blurb}</p>
+    {
+      LINKS.instagram && (
+        <p class="muted list-head__extra">
+          인스타그램에도 올립니다 → <a href={LINKS.instagram}>@인스타툰</a>
+        </p>
+      )
+    }
+  </header>
+
+  {
+    episodes.length === 0 ? (
+      <p class="muted">
+        <code>src/content/webtoon/</code> 에 첫 화를 넣어보세요. 컷 목록은
+        <code>npm run webtoon:manifest -- public/webtoon/ep01</code> 로 만들 수 있습니다.
+      </p>
+    ) : (
+      <ul class="toon-grid">
+        {episodes.map((episode) => {
+          const cover = episode.data.cover ?? episode.data.panels[0].src;
+          const first = episode.data.panels[0];
+          return (
+            <li>
+              <a class="toon-item" href={urlOf.webtoon(episode)}>
+                <span class="toon-item__thumb">
+                  <img
+                    src={cover}
+                    width={first.width}
+                    height={first.height}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </span>
+                <span class="toon-item__body">
+                  <span class="pill">{episode.data.episode}화</span>
+                  <strong class="toon-item__title">{episode.data.title}</strong>
+                  {episode.data.description && (
+                    <span class="muted toon-item__desc">
+                      {episode.data.description}
+                    </span>
+                  )}
+                  <time
+                    class="muted toon-item__date"
+                    datetime={episode.data.publishedAt.toISOString()}
+                  >
+                    {formatDate(episode.data.publishedAt)}
+                  </time>
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .list-head {
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .list-head h1 {
+    margin-top: 0.4rem;
+  }
+
+  .list-head p + p {
+    margin-top: 0.7rem;
+  }
+
+  .list-head > p.muted:not(.list-head__extra) {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.95rem;
+  }
+
+  .list-head__extra {
+    font-size: var(--label);
+  }
+
+  .toon-grid {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  }
+
+  .toon-item {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100%;
+    text-decoration: none;
+    border: var(--bw) solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    background: var(--bg-elev);
+    transition:
+      transform 0.1s steps(2, end),
+      box-shadow 0.1s steps(2, end);
+  }
+
+  .toon-item:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  /* 첫 컷을 썸네일로 쓰되 위쪽만 보여줍니다 — 스크롤툰 첫 컷은 보통 세로로 길어서. */
+  .toon-item__thumb {
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--comic-bg);
+    border-bottom: var(--bw) solid var(--border);
+  }
+
+  .toon-item__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+  }
+
+  .toon-item__body {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 0.3rem;
+    padding: 0.9rem 1.05rem 1.05rem;
+  }
+
+  .toon-item__title {
+    font-size: 1.05rem;
+    letter-spacing: 0;
+  }
+
+  .toon-item__desc {
+    font-family: var(--font-prose);
+    -webkit-font-smoothing: antialiased;
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+
+  .toon-item__date {
+    font-size: var(--label);
+    color: var(--fg-faint);
+    margin-top: 0.4rem;
+  }
+</style>

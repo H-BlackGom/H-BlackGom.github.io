@@ -1,0 +1,238 @@
+---
+/**
+ * 웹툰 뷰어.
+ *  - format: 'scroll'   → 세로 스크롤툰. 컷 사이 간격 0, 상단 진행바.
+ *  - format: 'carousel' → 인스타툰. 가로 스와이프 + 인디케이터.
+ * 같은 원고(panels)로 둘 다 렌더되므로 인스타툰 전환 시 frontmatter 한 줄만 바꾸면 됩니다.
+ */
+interface Panel {
+  src: string;
+  width: number;
+  height: number;
+  alt?: string;
+}
+
+interface Props {
+  panels: Panel[];
+  format: 'scroll' | 'carousel';
+  title: string;
+}
+
+const { panels, format, title } = Astro.props;
+---
+
+{
+  format === 'scroll' ? (
+    <>
+      <div class="toon-progress" aria-hidden="true">
+        <span id="toon-progress-bar"></span>
+      </div>
+
+      <div class="toon-scroll bleed" data-panel-count={panels.length}>
+        <div class="toon-scroll__inner">
+          {panels.map((panel, i) => (
+            <img
+              src={panel.src}
+              width={panel.width}
+              height={panel.height}
+              alt={panel.alt ?? `${title} ${i + 1}번째 컷`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              fetchpriority={i === 0 ? 'high' : 'auto'}
+              decoding={i === 0 ? 'sync' : 'async'}
+              draggable="false"
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  ) : (
+    <div class="toon-carousel bleed">
+      <ol
+        class="toon-carousel__track"
+        id="toon-track"
+        tabindex="0"
+        aria-label={`${title} 컷 넘기기 (좌우 방향키)`}
+      >
+        {panels.map((panel, i) => (
+          <li class="toon-carousel__slide">
+            <img
+              src={panel.src}
+              width={panel.width}
+              height={panel.height}
+              alt={panel.alt ?? `${title} ${i + 1}번째 컷`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding={i === 0 ? 'sync' : 'async'}
+              draggable="false"
+            />
+          </li>
+        ))}
+      </ol>
+
+      <p class="toon-carousel__dots" aria-hidden="true">
+        {panels.map((_, i) => (
+          <span class="toon-carousel__dot" data-index={i}></span>
+        ))}
+      </p>
+      <p class="muted toon-carousel__hint">
+        좌우로 스와이프하거나 방향키로 넘기세요 · 총 {panels.length}컷
+      </p>
+    </div>
+  )
+}
+
+<style>
+  /* ── 세로 스크롤툰 ── */
+
+  .toon-progress {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    height: 4px;
+    background: transparent;
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  /* 진행바가 4px 단위로 뚝뚝 차오르게 — steps()로 도트 느낌을 냅니다. */
+  .toon-progress > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 100ms steps(8, end);
+  }
+
+  .toon-scroll {
+    background: var(--comic-bg);
+    padding-block: 1.5rem;
+  }
+
+  .toon-scroll__inner {
+    width: min(100%, var(--webtoon-w));
+    margin-inline: auto;
+    /* 컷 사이가 벌어지면 스크롤툰의 흐름이 끊깁니다. 간격 0이 핵심. */
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    line-height: 0;
+    background: #fff;
+    border: var(--bw) solid var(--border);
+  }
+
+  .toon-scroll__inner img {
+    width: 100%;
+    height: auto;
+    user-select: none;
+  }
+
+  /* ── 인스타툰(가로 스와이프) ── */
+
+  .toon-carousel {
+    background: var(--comic-bg);
+    padding-block: 1.5rem 1rem;
+  }
+
+  .toon-carousel__track {
+    display: flex;
+    gap: 0.75rem;
+    list-style: none;
+    padding: 0 max(1rem, calc(50% - var(--webtoon-w) / 2));
+    margin: 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .toon-carousel__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toon-carousel__slide {
+    flex: 0 0 min(100%, var(--webtoon-w));
+    scroll-snap-align: center;
+    background: #fff;
+    border: var(--bw) solid var(--border);
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .toon-carousel__slide img {
+    width: 100%;
+    height: auto;
+    user-select: none;
+  }
+
+  .toon-carousel__dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 0.9rem;
+  }
+
+  /* 인디케이터는 네모난 도트 — 원형이면 도트 디자인이 깨집니다. */
+  .toon-carousel__dot {
+    width: 6px;
+    height: 6px;
+    background: var(--fg-faint);
+    transition: background 0.1s steps(2, end);
+  }
+
+  .toon-carousel__dot[data-active] {
+    background: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .toon-carousel__hint {
+    text-align: center;
+    font-size: var(--label);
+    margin-top: 0.7rem;
+  }
+</style>
+
+<script>
+  // 스크롤툰 진행바
+  const bar = document.getElementById('toon-progress-bar');
+  if (bar) {
+    const update = () => {
+      const scrollable = document.documentElement.scrollHeight - innerHeight;
+      const ratio = scrollable > 0 ? scrollY / scrollable : 0;
+      bar.style.width = `${Math.min(100, Math.max(0, ratio * 100))}%`;
+    };
+    addEventListener('scroll', update, { passive: true });
+    addEventListener('resize', update);
+    update();
+  }
+
+  // 인스타툰 인디케이터 + 방향키
+  const track = document.getElementById('toon-track');
+  if (track) {
+    const slides = [...track.children] as HTMLElement[];
+    const dots = [...document.querySelectorAll<HTMLElement>('.toon-carousel__dot')];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const index = slides.indexOf(entry.target as HTMLElement);
+          dots.forEach((dot, i) =>
+            i === index
+              ? dot.setAttribute('data-active', '')
+              : dot.removeAttribute('data-active'),
+          );
+        }
+      },
+      { root: track, threshold: 0.6 },
+    );
+    slides.forEach((slide) => observer.observe(slide));
+
+    track.addEventListener('keydown', (event) => {
+      const key = (event as KeyboardEvent).key;
+      if (key !== 'ArrowLeft' && key !== 'ArrowRight') return;
+      event.preventDefault();
+      const step = track.clientWidth * (key === 'ArrowRight' ? 1 : -1);
+      track.scrollBy({ left: step, behavior: 'smooth' });
+    });
+  }
+</script>
