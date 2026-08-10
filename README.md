@@ -3,6 +3,18 @@
 Astro 5 + GitHub Pages 개인 블로그. 콘텐츠 5종(끄적임 / 딥다이브 / 얕은 지식 / 웹툰 / 레시피)을
 각각 다른 방식으로 보여주는 것이 이 스켈레톤의 목적입니다. 디자인은 **도트(픽셀)** 기조입니다.
 
+라이브: https://h-blackgom.github.io
+
+### 문서 세 개의 역할
+
+| 파일 | 독자 | 언제 | 담긴 것 |
+|---|---|---|---|
+| `CLAUDE.md` | Claude | **항상 자동 로드** | 어기면 사고 나는 **규칙** (git 신원, 도트 22px, 정렬, 검증) |
+| `.claude/skills/publish-post/` | Claude | `/publish-post` 호출 시 | 발행 **절차** |
+| `README.md` (이 파일) | 사람 | 읽고 싶을 때 | **근거와 배경** — 왜 그렇게 정했는지 |
+
+규칙만 빨리 보려면 `CLAUDE.md`, 이유가 궁금하면 이 파일을 보세요.
+
 ```
 npm install
 npm run dev      # http://localhost:4321
