@@ -16,11 +16,12 @@ const tags = tagCounts(feed).slice(0, 24);
     <div class="hero__id">
       <img
         class="hero__mark"
-        src="/favicon.svg"
-        width="72"
-        height="72"
+        src="/avatar.webp"
+        width="104"
+        height="104"
         alt=""
         aria-hidden="true"
+        fetchpriority="high"
       />
       <div>
         <h1 class="dot hero__name">{SITE.title}</h1>
@@ -118,13 +119,16 @@ const tags = tagCounts(feed).slice(0, 24);
     gap: 1rem;
   }
 
-  /* 도트 마크는 확대해도 각져야 합니다. */
+  /* 아바타는 이 사이트에서 유일하게 둥근 요소입니다(--radius: 0 의 예외).
+     원본 일러스트가 원형으로 구성돼 있고, 사각으로 자르면 흰 모서리가 남아
+     다크모드에서 밝은 사각형이 튑니다. 인물 아바타의 원형은 관례이기도 합니다. */
   .hero__mark {
-    width: 56px;
-    height: 56px;
+    width: 72px;
+    height: 72px;
     flex: none;
-    image-rendering: pixelated;
+    border-radius: 50%;
     border: var(--bw) solid var(--border);
+    background: var(--bg-elev);
   }
 
   .hero__name {
@@ -143,8 +147,8 @@ const tags = tagCounts(feed).slice(0, 24);
 
   @media (min-width: 40rem) {
     .hero__mark {
-      width: 72px;
-      height: 72px;
+      width: 104px;
+      height: 104px;
     }
     .hero__name {
       font-size: var(--dot-3);

@@ -27,8 +27,20 @@ const links = [
   description={`${SITE.author}이 누구이고 이 블로그에 무엇이 있는지.`}
 >
   <header class="about-head page-block">
-    <p class="eyebrow">{ABOUT.label}</p>
-    <h1 class="dot section-title">{SITE.author}</h1>
+    <div class="about-id">
+      <img
+        class="about-mark"
+        src="/avatar.webp"
+        width="104"
+        height="104"
+        alt={`${SITE.author} 아바타 — 노트북 앞에서 파스타를 내미는 곰`}
+        fetchpriority="high"
+      />
+      <div>
+        <p class="eyebrow">{ABOUT.label}</p>
+        <h1 class="dot section-title">{SITE.author}</h1>
+      </div>
+    </div>
     <p class="about-lede">{SITE.tagline}.</p>
   </header>
 
@@ -121,8 +133,31 @@ const links = [
     border-bottom: var(--bw) solid var(--border);
   }
 
+  .about-id {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  /* 홈 히어로와 같은 아바타 — 사이트에서 유일하게 둥근 요소입니다. */
+  .about-mark {
+    width: 72px;
+    height: 72px;
+    flex: none;
+    border-radius: 50%;
+    border: var(--bw) solid var(--border);
+    background: var(--bg-elev);
+  }
+
+  @media (min-width: 40rem) {
+    .about-mark {
+      width: 104px;
+      height: 104px;
+    }
+  }
+
   .about-head h1 {
-    margin-top: 0.5rem;
+    margin-top: 0.2rem;
   }
 
   .about-lede {

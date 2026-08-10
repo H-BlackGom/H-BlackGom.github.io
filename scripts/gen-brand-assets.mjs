@@ -6,8 +6,13 @@
  *
  * 만드는 것:
  *   public/favicon.svg          — 16x16 도트 곰 (벡터, crispEdges)
+ *   public/avatar.png           — 320px 원형 아바타 (일러스트, 배경 투명)
  *   public/og-default.png       — 1200x630 기본 OG 이미지
  *   public/webtoon/ep01/*.png   — 데모용 플레이스홀더 컷 3장
+ *
+ * 마크가 둘인 이유 — 크기마다 살아남는 그림이 다릅니다.
+ *   도트 곰   : 16~32px(파비콘). 일러스트는 이 크기에서 뭉개집니다
+ *   일러스트  : 56px 이상(히어로·소개·OG). 도트는 이 크기에서 밋밋합니다
  *
  * 실제 웹툰 원고가 생기면 webtoon 부분은 지우고 쓰세요.
  * 색은 src/styles/global.css 의 토큰과 맞춰뒀습니다.
@@ -87,19 +92,45 @@ ${faviconRects}
 
 await writeFile(path.join(ROOT, 'public/favicon.svg'), favicon, 'utf8');
 
+// ─────────────────────────────────────────── 아바타 (일러스트)
+
+const AVATAR_SRC = path.join(ROOT, 'assets/avatar-source.webp');
+
+/** 원형으로 잘라내는 알파 마스크. 흰 모서리를 남기면 다크모드에서 사각형이 튑니다. */
+const circleMask = (size) =>
+  Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">` +
+      `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/>` +
+      `</svg>`,
+  );
+
+/** 원형으로 잘린 아바타. png=OG 합성용, webp=화면용(용량 1/4). */
+const avatarBuffer = async (size, format = 'png') => {
+  const base = sharp(AVATAR_SRC)
+    .resize(size, size, { fit: 'cover' })
+    .composite([{ input: circleMask(size), blend: 'dest-in' }]);
+  return format === 'webp'
+    ? base.webp({ quality: 88 }).toBuffer()
+    : base.png({ compressionLevel: 9 }).toBuffer();
+};
+
+// 화면에서 쓰는 아바타. 160px 자리까지 2배 밀도로 감당합니다.
+// OG는 크롤러 호환 때문에 PNG여야 하지만, 페이지 안에서는 WebP로 충분합니다.
+await writeFile(
+  path.join(ROOT, 'public/avatar.webp'),
+  await avatarBuffer(320, 'webp'),
+);
+
 // ─────────────────────────────────────────── OG 기본 이미지
 
 /**
- * 도트 그리드 배경 + 확대한 도트 곰 + 제목.
+ * 도트 그리드 배경 + 아바타 일러스트 + 제목.
+ * 공유 카드는 큰 자리라 도트 곰 대신 일러스트를 씁니다.
  * 텍스트는 시스템 폰트로 렌더됩니다 — sharp가 Galmuri woff2를 못 읽기 때문입니다.
- * 완전한 도트 OG를 원하면 글자도 비트맵으로 찍어야 합니다.
  */
-const ogBear = bitmapToRects(BEAR, {
-  scale: 18,
-  colors: { 1: C.amber, 2: C.accent },
-});
+const OG_AVATAR = 300;
 
-const og = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
+const ogBackground = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
   <defs>
     <pattern id="dots" width="10" height="10" patternUnits="userSpaceOnUse">
       <rect width="10" height="10" fill="${C.terminal}"/>
@@ -109,15 +140,20 @@ const og = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
   <rect width="1200" height="630" fill="url(#dots)"/>
   <rect x="24" y="24" width="1152" height="582" fill="none" stroke="${C.amber}" stroke-width="6"/>
 
-  <g transform="translate(96, 171)">${ogBear}</g>
-
   <text x="470" y="272" font-family="${KO}" font-size="72" font-weight="700" fill="${C.amber}">서빙하는 아빠곰</text>
   <text x="470" y="322" font-family="Menlo, monospace" font-size="28" fill="#9c9a84">serving-bear</text>
   <text x="470" y="392" font-family="${KO}" font-size="27" fill="#8b8474">가족에겐 맛있는 밥을, 서버에겐 안정적인 코드를</text>
   <text x="470" y="436" font-family="${KO}" font-size="24" fill="#6b6959">끄적임 · 딥다이브 · 얕은 지식 · 웹툰 · 레시피</text>
 </svg>`;
 
-await sharp(Buffer.from(og))
+await sharp(Buffer.from(ogBackground))
+  .composite([
+    {
+      input: await avatarBuffer(OG_AVATAR),
+      top: Math.round((630 - OG_AVATAR) / 2),
+      left: 110,
+    },
+  ])
   .png()
   .toFile(path.join(ROOT, 'public/og-default.png'));
 
