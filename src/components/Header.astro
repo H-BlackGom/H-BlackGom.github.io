@@ -12,7 +12,7 @@ const isCurrent = (href: string) => path === href || path.startsWith(href + '/')
       <span class="brand__tagline muted">{SITE.tagline}</span>
     </a>
 
-    <nav aria-label="섹션">
+    <nav class="site-nav" aria-label="섹션">
       <ul class="nav">
         {
           NAV.map((item) => (
@@ -138,6 +138,51 @@ const isCurrent = (href: string) => path === href || path.startsWith(href + '/')
   .theme-toggle:active {
     transform: translate(2px, 2px);
     box-shadow: none;
+  }
+
+  /* ───────────── 모바일 ─────────────
+     메뉴가 6개라 좁은 화면에서 4/2/1 세 줄로 접혔습니다.
+     줄바꿈 대신 **가로 스크롤 스트립**으로 바꿉니다.
+     - 6개를 전부 유지(햄버거처럼 숨기지 않음)
+     - 항상 한 줄
+     - JS 없음
+     화면 끝까지 흐르게 해서 "옆으로 더 있다"가 잘리는 항목으로 드러나게 합니다. */
+  @media (max-width: 48rem) {
+    .site-head__inner {
+      gap: 0.5rem 0.75rem;
+      padding-block: 0.6rem;
+    }
+
+    /* 태그라인은 모바일에서 한 줄을 통째로 먹어서 숨깁니다. */
+    .brand__tagline {
+      display: none;
+    }
+
+    .site-nav {
+      flex: 1 0 100%;
+      order: 3;
+      min-width: 0;
+    }
+
+    .nav {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      /* .wrap 의 좌우 패딩을 상쇄해 화면 끝까지 흐르게 */
+      margin-inline: calc(-1 * clamp(1.25rem, 5vw, 2.5rem));
+      padding-inline: clamp(1.25rem, 5vw, 2.5rem);
+      /* 버튼의 하드 그림자(2px)가 스크롤 영역에 잘리지 않도록 */
+      padding-block: 2px 4px;
+    }
+
+    .nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav a {
+      white-space: nowrap;
+    }
   }
 
   /* 현재 테마에 맞는 아이콘 하나만 보여줍니다 */
