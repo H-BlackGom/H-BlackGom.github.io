@@ -104,14 +104,41 @@ const circleMask = (size) =>
       `</svg>`,
   );
 
-/** 원형으로 잘린 아바타. png=OG 합성용, webp=화면용(용량 1/4). */
+/**
+ * 일러스트를 도트로 변환합니다. 사이트가 도트 기조라 매끈한 카툰은 언어가 어긋납니다.
+ *
+ * 두 단계가 다 필요합니다.
+ *   1. 작게 줄이기(PIXEL_GRID)  — 픽셀 격자를 만든다
+ *   2. 색 수 줄이기(PIXEL_COLOURS) — 이걸 안 하면 '흐릿한 저해상도 사진'이지 도트가 아니다
+ *
+ * 64px/24색이 최적점입니다. 48px 이하로 내리면 안경과 표정이 뭉개져
+ * "누구인지"가 사라집니다.
+ *
+ * 원형 마스크를 격자 크기에서 적용하는 이유: 테두리도 픽셀 계단이 되어야
+ * 내용과 언어가 맞습니다. 큰 크기에서 자르면 매끈한 원이 되어 어긋납니다.
+ */
+const PIXEL_GRID = 64;
+const PIXEL_COLOURS = 24;
+
+/** 도트화된 원형 아바타. png=OG 합성용, webp=화면용(용량 1/4). */
 const avatarBuffer = async (size, format = 'png') => {
-  const base = sharp(AVATAR_SRC)
-    .resize(size, size, { fit: 'cover' })
-    .composite([{ input: circleMask(size), blend: 'dest-in' }]);
+  const meta = await sharp(AVATAR_SRC).metadata();
+  // 원본은 원형 일러스트 주변에 흰 여백이 있습니다. 중앙 88%만 써서 피사체를 키웁니다.
+  const crop = Math.round(meta.width * 0.88);
+  const off = Math.round((meta.width - crop) / 2);
+
+  const dotted = await sharp(AVATAR_SRC)
+    .extract({ left: off, top: off, width: crop, height: crop })
+    .resize(PIXEL_GRID, PIXEL_GRID, { fit: 'cover' })
+    .composite([{ input: circleMask(PIXEL_GRID), blend: 'dest-in' }])
+    .png({ palette: true, colours: PIXEL_COLOURS, dither: 0 })
+    .toBuffer();
+
+  // nearest 로 확대해야 픽셀이 뭉개지지 않습니다.
+  const scaled = sharp(dotted).resize(size, size, { kernel: 'nearest' });
   return format === 'webp'
-    ? base.webp({ quality: 88 }).toBuffer()
-    : base.png({ compressionLevel: 9 }).toBuffer();
+    ? scaled.webp({ quality: 92 }).toBuffer()
+    : scaled.png({ compressionLevel: 9 }).toBuffer();
 };
 
 // 화면에서 쓰는 아바타. 160px 자리까지 2배 밀도로 감당합니다.

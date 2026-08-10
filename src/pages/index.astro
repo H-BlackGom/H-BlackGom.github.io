@@ -119,16 +119,14 @@ const tags = tagCounts(feed).slice(0, 24);
     gap: 1rem;
   }
 
-  /* 아바타는 이 사이트에서 유일하게 둥근 요소입니다(--radius: 0 의 예외).
-     원본 일러스트가 원형으로 구성돼 있고, 사각으로 자르면 흰 모서리가 남아
-     다크모드에서 밝은 사각형이 튑니다. 인물 아바타의 원형은 관례이기도 합니다. */
+  /* 아바타는 64px 격자로 도트화돼 있고 원형 테두리도 픽셀 계단입니다.
+     그래서 border-radius 가 필요 없습니다 — CSS로 둥글리면 그 매끈한 곡선이
+     안쪽 픽셀 계단과 어긋납니다. pixelated 로 확대해도 각지게 유지합니다. */
   .hero__mark {
     width: 72px;
     height: 72px;
     flex: none;
-    border-radius: 50%;
-    border: var(--bw) solid var(--border);
-    background: var(--bg-elev);
+    image-rendering: pixelated;
   }
 
   .hero__name {

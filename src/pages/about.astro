@@ -139,14 +139,12 @@ const links = [
     gap: 1rem;
   }
 
-  /* 홈 히어로와 같은 아바타 — 사이트에서 유일하게 둥근 요소입니다. */
+  /* 홈 히어로와 같은 아바타. 도트화된 원형이라 border-radius 가 필요 없습니다. */
   .about-mark {
     width: 72px;
     height: 72px;
     flex: none;
-    border-radius: 50%;
-    border: var(--bw) solid var(--border);
-    background: var(--bg-elev);
+    image-rendering: pixelated;
   }
 
   @media (min-width: 40rem) {
