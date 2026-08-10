@@ -86,36 +86,30 @@ const isCurrent = (href: string) => path === href || path.startsWith(href + '/')
     flex-wrap: wrap;
   }
 
-  /* 메뉴를 각진 픽셀 버튼으로 — 텍스트 링크로 두면 11px 도트가 묻힙니다. */
+  /* 텍스트 링크로 둡니다.
+     예전에 "메뉴가 눈에 안 들어온다"는 문제가 있었는데, 원인은 글자가 흐렸던 것
+     (--fg-muted)이었지 박스가 없어서가 아니었습니다. 6개를 전부 버튼으로 만들었더니
+     헤더가 무거워져서, 대비만 올리고 박스는 걷어냅니다. */
   .nav a {
     display: block;
-    padding: 0.45rem 0.75rem;
-    border: var(--bw) solid var(--border);
-    box-shadow: 2px 2px 0 var(--border);
-    background: var(--bg);
+    padding: 0.3rem 0.45rem;
     font-size: var(--label);
     font-weight: 700;
     text-decoration: none;
     color: var(--fg);
-    transition:
-      transform 0.1s steps(2, end),
-      box-shadow 0.1s steps(2, end);
+    border-bottom: 2px solid transparent;
+    transition: color 0.1s steps(2, end), border-color 0.1s steps(2, end);
   }
 
   .nav a:hover {
     color: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 2px 2px 0 var(--accent);
-    transform: translate(-1px, -1px);
+    border-bottom-color: var(--border-soft);
   }
 
-  /* 현재 위치는 색을 꽉 채우고 그림자를 없애 "눌린" 상태로 보이게 합니다. */
+  /* 현재 위치는 밑줄로만 표시 — 채운 블록은 헤더에서 너무 큽니다. */
   .nav a[aria-current='page'] {
-    color: var(--accent-fg);
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: none;
-    transform: translate(2px, 2px);
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
 
   .theme-toggle {
@@ -169,11 +163,10 @@ const isCurrent = (href: string) => path === href || path.startsWith(href + '/')
       overflow-x: auto;
       overscroll-behavior-x: contain;
       scrollbar-width: none;
+      gap: 0.75rem;
       /* .wrap 의 좌우 패딩을 상쇄해 화면 끝까지 흐르게 */
       margin-inline: calc(-1 * clamp(1.25rem, 5vw, 2.5rem));
       padding-inline: clamp(1.25rem, 5vw, 2.5rem);
-      /* 버튼의 하드 그림자(2px)가 스크롤 영역에 잘리지 않도록 */
-      padding-block: 2px 4px;
     }
 
     .nav::-webkit-scrollbar {

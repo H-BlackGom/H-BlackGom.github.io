@@ -2,17 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
 import { SITE, SECTIONS, ABOUT } from '../consts';
-import { getFeed, tagCounts, formatDate } from '../lib/content';
+import { getFeed, tagCounts } from '../lib/content';
 
 const feed = await getFeed();
 const recent = feed.slice(0, 9);
 const tags = tagCounts(feed).slice(0, 24);
-
-/** 섹션 카드에 "몇 개 · 마지막 갱신"을 붙입니다. 살아있는 블로그로 보이게. */
-const sectionStats = SECTIONS.map((section) => {
-  const items = feed.filter((item) => item.section === section.id);
-  return { ...section, count: items.length, lastAt: items[0]?.publishedAt };
-});
 ---
 
 <BaseLayout title={SITE.title} description={SITE.description}>
@@ -35,25 +29,22 @@ const sectionStats = SECTIONS.map((section) => {
     <h2 id="sections-heading" class="visually-hidden">섹션</h2>
     <div class="grid">
       {
-        sectionStats.map((section) => (
-          <a class="card section-card" href={section.href}>
+        SECTIONS.map((section) => (
+          <a class="card card--quiet section-card" href={section.href}>
             <h3>{section.label}</h3>
             <p class="section-card__blurb">{section.blurb}</p>
-            <p class="section-card__stat">
-              {section.count > 0
-                ? `${section.count}개 · 최근 ${formatDate(section.lastAt!)}`
-                : '아직 없음'}
-            </p>
           </a>
         ))
       }
 
       {/* 콘텐츠 섹션이 아니라 사람이라 배경을 한 톤 낮춰 구분합니다.
           섹션 5개 + 이 카드 = 6개라 3열에서 두 줄이 딱 맞습니다. */}
-      <a class="card section-card section-card--about" href={ABOUT.href}>
+      <a
+        class="card card--quiet section-card section-card--about"
+        href={ABOUT.href}
+      >
         <h3>{ABOUT.label}</h3>
-        <p class="section-card__blurb">이 블로그를 쓰는 사람</p>
-        <p class="section-card__stat">{SITE.author}</p>
+        <p class="section-card__blurb">{SITE.author}</p>
       </a>
     </div>
   </section>
@@ -177,12 +168,6 @@ const sectionStats = SECTIONS.map((section) => {
     line-height: 1.7;
     color: var(--fg-muted);
     margin-top: 0.4rem;
-  }
-
-  .section-card__stat {
-    font-size: var(--label);
-    color: var(--fg-faint);
-    margin-top: 0.9rem;
   }
 
   .tag__count {

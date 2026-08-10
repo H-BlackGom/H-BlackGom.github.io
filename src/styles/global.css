@@ -485,38 +485,35 @@ pre {
 
 /* ═════════════════════════════════════════════ 조각들 */
 
-/* 태그는 각진 칩. 글자는 모노 — 도트로 작게 쓰면 한글이 깨집니다. */
+/* 태그는 각진 칩.
+   하드 그림자를 뺐습니다 — 그림자는 "읽을 것"(글 카드)에만 남깁니다.
+   한 페이지에 칩이 십수 개씩 깔리는데 전부 그림자를 달면 강조가 아니라 노이즈가 됩니다. */
 .tag {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: var(--label);
   font-weight: 700;
   line-height: 1.7;
-  padding: 0.35em 0.7em;
-  border: var(--bw) solid var(--border);
-  box-shadow: 2px 2px 0 var(--border);
+  padding: 0.3em 0.65em;
+  border: 1px solid var(--border-soft);
   color: var(--fg);
   background: var(--bg-elev);
   text-decoration: none;
   transition:
-    transform 0.1s steps(2, end),
-    box-shadow 0.1s steps(2, end);
+    color 0.1s steps(2, end),
+    border-color 0.1s steps(2, end);
 }
 
 .tag:hover {
   color: var(--accent);
   border-color: var(--accent);
-  box-shadow: 2px 2px 0 var(--accent);
-  transform: translate(-1px, -1px);
 }
 
-/* 눌린 태그(필터 활성) — 색을 채우고 그림자를 없앱니다. */
+/* 눌린 태그(필터 활성) — 색을 채워서 구분합니다. */
 .tag[aria-pressed='true'] {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-fg);
-  box-shadow: none;
-  transform: translate(2px, 2px);
 }
 
 /* 카드 안에 들어가는 태그는 장식이라 한 단계 약하게 */
@@ -564,6 +561,24 @@ pre {
   /* 부드럽게 뜨지 않고 한 칸 툭 밀립니다 — steps() 이징이 핵심 */
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-lift);
+}
+
+/**
+ * 길찾기용 카드 — 하드 그림자를 뺍니다.
+ *
+ * 하드 그림자는 강조 장치다. 홈에만 32개가 붙어 있었더니 강조가 아니라
+ * 배경 노이즈가 됐다. 그래서 "읽을 것"(글 카드)에만 남기고,
+ * 목적지로 데려다주기만 하는 카드는 테두리로만 구분한다.
+ */
+.card--quiet {
+  box-shadow: none;
+  border-color: var(--border-soft);
+}
+
+.card--quiet:hover {
+  box-shadow: none;
+  transform: none;
+  border-color: var(--accent);
 }
 
 .grid {
